@@ -104,6 +104,30 @@ E há Platão e Virgílio dentro das máquinas e das luzes eléctricas
 
 ---
 
+## What we know / What we don't know
+
+### ✅ Confirmed
+| Finding | Source |
+|---|---|
+| Model is GPT-10L, byte-level, 262 vocab | `explore.py` |
+| 4 heteronym special tokens (256–259) + `_` (260) + `{` (261) | model config |
+| `{` has anomalously high embedding norm (3.05 vs mean 2.30) | weight analysis |
+| Álvaro de Campos (poem's author) is NOT in vocab | — |
+| All 4 heteronyms give near-identical perplexity on poem (~297) | H01 |
+| After `poem + _{`, all heteronyms produce identical greedy output | H02 |
+| Greedy from `_{` closes with `}` at step 9 | H02 |
+
+### ❓ Open questions
+| Question | Related hypothesis |
+|---|---|
+| What encoding are the inner bytes of `_{...}`? | H03 |
+| Is the flag the missing heteronym name? | H04 |
+| Does the SSH server give more context after a wrong answer? | — |
+| Is there a specific input format the server expects? | — |
+| Is the `_` token a namespace marker (like `_flag{...}`)? | H03 |
+
+---
+
 ## How we work
 
 Each hypothesis gets its own branch and PR. PRs describe exactly what was tested and what was found — even failures. This creates a reproducible research log.
