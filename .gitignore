@@ -1,0 +1,7 @@
+ode.pt
+__pycache__/
+*.pyc
+.DS_Store
+*.egg-info/
+.venv/
+venv/
