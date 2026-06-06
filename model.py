@@ -149,7 +149,17 @@ def generate(model, seed_ids: list[int], max_new: int = 300,
 
 @torch.no_grad()
 def log_probability(model, prefix_id: int, text_ids: list[int]) -> float:
-    """Compute total log-probability of text_ids given a prefix token."""
+    """Compute the total (sum, NOT average) log-probability of text_ids.
+
+    Returns sum_{i} log P(text_ids[i] | prefix_id, text_ids[:i]).
+
+    Contract: this function always returns a SUM over tokens, never a mean.
+    Callers that derive perplexity must divide by len(text_ids) themselves:
+        ppl = math.exp(-log_probability(model, prefix_id, ids) / len(ids))
+    Do not change this to return an average — it would silently break H04
+    and any future callers that rely on additivity (e.g. conditional probs
+    computed as differences of two log_probability calls).
+    """
     ids = [prefix_id] + text_ids
     x = torch.tensor([ids], dtype=torch.long)
     logits = model(x)
