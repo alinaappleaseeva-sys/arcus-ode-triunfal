@@ -170,7 +170,7 @@ def run():
     # ── C: Top-20 next tokens after each context ──────────────────────────────
     print("\n--- C: Top-20 next tokens ---")
     for label, ctx in [("full poem (last 900b)", full_ids[-900:]),
-                       ("last stanza",           last_ids),
+                       ("last stanza",           last_ids[-1000:]),
                        ("SSH 4-line",            short_ids)]:
         x = torch.tensor([ctx], dtype=torch.long)
         with torch.no_grad():
@@ -182,15 +182,56 @@ def run():
             name = repr(chr(tid)) if 32 <= tid < 127 else (id_to_s.get(tid) or f'0x{tid:02x}')
             print(f"    id={tid:3d}  P={p:.4f}  {name}")
 
-    # ── D: Heteronym prefix + full poem ───────────────────────────────────────
-    print("\n--- D: Heteronym prefix + last stanza → greedy ---")
-    for het in ['<|fernando_pessoa|>', '<|alberto_caeiro|>',
-                '<|ricardo_reis|>', '<|bernardo_soares|>']:
+    # ── D: Heteronym prefix + poem → greedy ──────────────────────────────────
+    # block_size=1024; prefix takes 1 token → max poem context = 1022 bytes
+    BLOCK = cfg.get('block_size', 1024)
+    print("\n--- D: Heteronym prefix + poem → greedy (context truncated to block_size) ---")
+    for label, ctx_ids in [("last stanza",           last_ids),
+                            ("full poem (last 900b)", full_ids[-900:]),
+                            ("SSH 4-line",            short_ids)]:
+        print(f"\n  context: {label!r}  ({len(ctx_ids)} bytes → fits in block)")
+        for het in ['<|fernando_pessoa|>', '<|alberto_caeiro|>',
+                    '<|ricardo_reis|>', '<|bernardo_soares|>']:
+            pid = special[het]
+            # Truncate poem so [pid] + ctx fits within block_size
+            max_ctx = BLOCK - 1 - 60  # leave 60 tokens for generation
+            ctx_trunc = ctx_ids[-max_ctx:] if len(ctx_ids) > max_ctx else ctx_ids
+            seed = [pid] + ctx_trunc
+            torch.manual_seed(42)
+            gen = generate(model, seed, max_new=60, greedy=True, stop_at_close=False)
+            print(f"    [{het}] → {decode(gen)!r}")
+
+    # ── D2: Score attribution candidates with heteronym prefix ────────────────
+    print("\n--- D2: P(attribution | het_prefix + last_stanza) ---")
+    attr_candidates = [
+        "\nFernando Pessoa",
+        "\n\n— Fernando Pessoa",
+        "\nÁlvaro de Campos",
+        "\n\n— Álvaro de Campos",
+        " de Sá-Carneiro",
+        "Mário de Sá-Carneiro",
+        "\n\n",
+    ]
+    max_ctx = BLOCK - 1 - 50
+    ctx_trunc = last_ids[-max_ctx:] if len(last_ids) > max_ctx else last_ids
+    print(f"\n  {'Het prefix':30s}  {'Candidate':30s}  PPL")
+    print("  " + "-" * 80)
+    for het in ['<|fernando_pessoa|>', '<|bernardo_soares|>']:
         pid = special[het]
-        seed = [pid] + last_ids
-        torch.manual_seed(42)
-        gen = generate(model, seed, max_new=60, greedy=True, stop_at_close=False)
-        print(f"  [{het}] → {decode(gen)!r}")
+        for cand in attr_candidates:
+            cand_ids = list(cand.encode('utf-8'))
+            full_ctx = [pid] + ctx_trunc + cand_ids
+            if len(full_ctx) > BLOCK:
+                full_ctx = full_ctx[-BLOCK:]
+            x = torch.tensor([full_ctx], dtype=torch.long)
+            with torch.no_grad():
+                logits = model(x)
+            lp = 0.0
+            offset = len(full_ctx) - len(cand_ids) - 1
+            for i, target in enumerate(cand_ids):
+                lp += F.log_softmax(logits[0, offset + i], dim=-1)[target].item()
+            ppl = math.exp(-lp / max(len(cand_ids), 1))
+            print(f"  {het:30s}  {cand!r:30s}  {ppl:.2f}")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     print(f"\n{'=' * 72}")
