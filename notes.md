@@ -35,3 +35,15 @@ Inner bytes: [261, 189, 152, 20, 28, 167, 211, 63, 54] → non-printable
 - H05: Try decoding byte sequence with different encoding (latin-1, base64, XOR)
 - H06: Look for flag in model weight tensor values directly
 - H07: Try `{ → greedy until }` with temperature sampling
+
+### 20260606_144639 — h03_plus — OK (200s)
+```
+──────────────────────────────────────────────────────────────────────
+  H03+  |  13 contexts  |  3 slices each  |  seed=42
+──────────────────────────────────────────────────────────────────────
+
+[bare_{]  gen_len=120
+  full_ids:  [110, 100, 111, 115, 105, 32, 101, 32, 100, 101, 32, 99, 111, 109, 111, 100, 97, 115, 32, 100, 101, 32, 99, 111, 109, 111, 100, 97, 115, 32]...
+  full_named:["'n'", "'d'", "'o'", "'s'", "'i'", "' '", "'e'", "' '", "'d'", "'e'", "' '", "'c'", "'o'", "'m'", "'o'"]...
+  s...
+```
