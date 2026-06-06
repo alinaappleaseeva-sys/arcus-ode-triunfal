@@ -61,3 +61,19 @@ Rank     LogProb      PPL  Candidate
   3       -27.89    104.3  'pessoa'  ← TRY ON SSH
   4       -28.49      6.7  'Bernardo Soares'  ← T...
 ```
+
+### 20260606_155241 — h04b_attribution_format — OK (53s)
+```
+======================================================================
+  H04b — Attribution format ranking by P(suffix | poem)
+  Baseline: bare 'Fernando Pessoa' had PPL=4.0
+======================================================================
+
+--- Without heteronym prefix ---
+
+     LogProb      PPL  Suffix
+  --------------------------------------------------------------
+       -6.17     1.47  ' de Sá-Carneiro'  ← TRY
+       -6.88     1.50  ' de Sá-Carneiro.'  ← TRY
+      -16.57     2.82  '\nFe...
+```
