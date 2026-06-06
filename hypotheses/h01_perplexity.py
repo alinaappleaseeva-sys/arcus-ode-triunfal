@@ -10,8 +10,6 @@ Best fit: <|ricardo_reis|> (ppl=297.18) but margin is negligible.
 """
 
 import math
-import sys
-sys.path.insert(0, '..')
 from model import load_model, log_probability
 
 POEM = (
@@ -21,8 +19,9 @@ POEM = (
     "    Só porque houve outra e foram humanos Virgílio e Platão"
 )
 
+
 def run():
-    model, special, cfg = load_model('../ode.pt')
+    model, special, cfg = load_model('ode.pt')
     poem_ids = list(POEM.encode('utf-8'))
 
     print(f"Poem length: {len(poem_ids)} tokens\n")
@@ -40,7 +39,3 @@ def run():
     best = min(results, key=results.get)
     print(f"\nBest fit: {best} (ppl={results[best]:.4f})")
     print("\nVerdict: FAILED — differences too small to be meaningful.")
-
-
-if __name__ == '__main__':
-    run()

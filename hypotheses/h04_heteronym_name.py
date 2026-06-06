@@ -20,11 +20,10 @@ This script validates the hypothesis by checking:
 Status: TODO — needs SSH server test
 """
 
-import sys, math
-sys.path.insert(0, '..')
-from model import load_model, log_probability
+import math
 import torch
 import torch.nn.functional as F
+from model import load_model, log_probability
 
 POEM = (
     "Canto, e canto o presente, e também o passado e o futuro,\n"
@@ -45,7 +44,7 @@ CANDIDATES = [
 
 @torch.no_grad()
 def run():
-    model, special, cfg = load_model('../ode.pt')
+    model, special, cfg = load_model('ode.pt')
     poem_ids = list(POEM.encode('utf-8'))
 
     print("=== H04: Missing heteronym — Álvaro de Campos ===\n")
@@ -53,45 +52,46 @@ def run():
     print("He is NOT in the model vocabulary (only 4 heteronyms present).")
     print("Hypothesis: the flag is his name in some form.\n")
 
-    # 1. Log-probability of each candidate string given the poem
-    print("1. Log-probability of candidate strings given poem context:")
-    print(f"   {'Candidate':<25} {'log_prob':>10} {'ppl':>10}")
-    print("   " + "-"*47)
+    # 1. Conditional log-probability of each candidate string given the poem.
+    #    We use log_probability(poem + candidate) - log_probability(poem)
+    #    to isolate P(candidate | poem_context).
+    #
+    #    Note: log_probability() returns a SUM over tokens (not average).
+    #    Perplexity = exp(-sum / n_tokens) — division by len() is done here.
+    print("1. Conditional log-prob of candidates given poem (pessoa prefix):")
+    print(f"   {'Candidate':<25} {'cond_log_prob':>14} {'ppl':>10}")
+    print("   " + "-"*52)
 
-    # Use fernando_pessoa as prefix (Álvaro de Campos is a Pessoa heteronym)
     prefix_id = special['<|fernando_pessoa|>']
+    lp_poem   = log_probability(model, prefix_id, poem_ids)
 
     for cand in CANDIDATES:
         try:
             cand_ids = list(cand.encode('utf-8'))
-            lp = log_probability(model, prefix_id,
-                                 poem_ids + cand_ids) - \
-                 log_probability(model, prefix_id, poem_ids)
-            ppl = math.exp(-lp / len(cand_ids))
-            print(f"   {cand:<25} {lp:>10.2f} {ppl:>10.4f}")
+            lp_full  = log_probability(model, prefix_id, poem_ids + cand_ids)
+            lp_cond  = lp_full - lp_poem            # sum over cand tokens only
+            ppl      = math.exp(-lp_cond / len(cand_ids))
+            print(f"   {cand:<25} {lp_cond:>14.2f} {ppl:>10.4f}")
         except Exception as e:
             print(f"   {cand:<25} ERROR: {e}")
 
-    # 2. What is the most likely WORD after the poem ends?
+    # 2. Top-20 most likely next tokens after the poem ends
     print("\n2. Top-20 tokens after poem ends (pessoa prefix):")
     seed = [prefix_id] + poem_ids
-    x = torch.tensor([seed], dtype=torch.long)
+    x    = torch.tensor([seed], dtype=torch.long)
     logits = model(x)[0, -1]
-    top = logits.topk(20)
+    id_to_special = {v: k for k, v in special.items()}
+    top  = logits.topk(20)
     for val, idx in zip(top.values.tolist(), top.indices.tolist()):
         idx = int(idx)
         if idx < 256:
             ch = repr(chr(idx)) if 32 <= idx < 127 else f'0x{idx:02x}'
         else:
-            ch = {v: k for k, v in special.items()}.get(idx, f'special_{idx}')
-        print(f"   id={idx:3d}  {ch:<20}  {val:+.3f}")
+            ch = id_to_special.get(idx, f'special_{idx}')
+        print(f"   id={idx:3d}  {ch:<25}  logit={val:+.3f}")
 
     # 3. SSH test instructions
-    print("\n3. SSH server test candidates (try in order):")
+    print("\n3. Candidates to try on SSH server (in priority order):")
     for i, cand in enumerate(CANDIDATES, 1):
         print(f"   {i}. {cand}")
-    print("\n   → ssh augustalabs.ai → enter candidate as 'flag:'")
-
-
-if __name__ == '__main__':
-    run()
+    print("\n   → ssh augustalabs.ai → enter at 'flag:' prompt")
