@@ -299,7 +299,7 @@ A subtly different lament. Not the inability to be *everywhere*, but to absorb *
 
 ## Takeaways
 
-**Generation before scoring.** Run the model. Read what it produces. Only score if generation doesn't give you a clear signal. Perplexity ranking is powerful but it only compares what you already thought of.
+*Lessons that generalise beyond this specific challenge.*
 
 **Context is the hypothesis.** The four SSH lines aren't neutral — they're a designed input. Ask what happens when you change the context: add the full poem, add a prefix token, add both. The answer may be in a context you haven't tried, not in a string you haven't scored.
 
