@@ -306,3 +306,13 @@ A subtly different lament. Not the inability to be *everywhere*, but to absorb *
 **The missing element is a clue.** Álvaro de Campos is the author of the poem and the one token not in the model. That absence points toward Fernando Pessoa as the right prefix — the orthonym who contains all the heteronyms, including the one that isn't there.
 
 **Assume the inputs have been tampered with.** The swapped word, the absent heteronym, the identical `_`/`{` tokens — all are deliberate design choices. Treat every feature of the challenge as potentially meaningful and potentially misleading.
+
+---
+
+## What I would do differently next time
+
+**Run generation first, score second.** I spent the first several hours building a scoring pipeline before ever running greedy generation. A single `model.generate()` call from a few different contexts would have surfaced the Sá-Carneiro red herring *and* the correct phrase in the same experiment — making the comparison obvious much earlier.
+
+**Test normalisation the moment a phrase appears.** When Section D of H05a produced *"Ah! não ser eu toda a gente que me acontece!"*, I noted it as interesting output but didn't immediately normalise and SSH-test it. There was an implicit assumption that the answer would be a *name*, not a *sentence*. Dropping that assumption and running every generated phrase through normalise → submit would have closed the loop one full hypothesis cycle sooner.
+
+**Move to end-to-end submission earlier.** I treated the SSH server as a last-resort oracle and relied heavily on PPL rankings as a proxy for correctness. The server was fast, reliable, and the only ground truth. In a challenge where the flag space is unbounded, submission cost is near zero, and scoring can mislead — the server should be part of the core loop from the beginning, not the final step.
