@@ -267,6 +267,8 @@ print('Flag:', normalize_flag(phrase))
 
 ## Why this was hard
 
+This challenge was not accidentally hard — every obstacle had an author. The swapped word, the absent heteronym, the identical separator tokens: each was a deliberate design choice that made the obvious approaches look plausible and fail cleanly.
+
 **The stanza was engineered to mislead.** One word changed (*outrora* → *outra*) created a syntactic pattern that activated memorised literary-criticism sentences about Sá-Carneiro. The model's response was statistically strong and literarily coherent — it was simply wrong.
 
 **Scoring and generation give different answers.** Under the four-line context, scoring pointed to Sá-Carneiro. Under the full-poem context with generation, the model said something else entirely. The challenge required switching between these two modes — and the swap was not obvious.
