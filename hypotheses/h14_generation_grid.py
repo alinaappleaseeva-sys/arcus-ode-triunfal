@@ -199,10 +199,18 @@ def run():
     cutpoint = poem_wiki_full.rfind("Eia comboios")
     poem_wiki_no_final = poem_wiki_full[:cutpoint].rstrip() if cutpoint != -1 else poem_wiki_full
 
-    # Context C7: wiki with "outra" instead of "outrora" — matches the SSH challenge text.
-    # Hypothesis: the model may have been trained on a corpus that uses this variant,
-    # which would explain why the SSH stanza uses "outra" rather than the Wikisource form.
-    poem_wiki_outra = poem_wiki_full.replace("outrora", "outra")
+    # Context C7: modern Portuguese orthography applied to the wiki text.
+    # Source: MEC/Estudo em Casa school PDF (Bloco 17, 12º ano) uses "elétricas"
+    # and "eletricidade" (post-2009 AO reform) vs Wikisource "eléctricas"/"electricidade".
+    # Note: "outrora" is mid-poem and never reaches [-900:], so it is NOT replaced here.
+    # The two occurrences of "electricidade" in the final stanza DO fall in [-900:],
+    # giving a real byte-level difference in the context passed to the model.
+    poem_wiki_modern = (
+        poem_wiki_full
+        .replace("electricidade", "eletricidade")
+        .replace("eléctricas", "elétricas")
+        .replace("eléctrica", "elétrica")
+    )
 
     # ── Context definitions ───────────────────────────────────────────────────
     contexts = [
@@ -213,7 +221,7 @@ def run():
         ("C4_wiki_256",           list(poem_wiki_full.encode("utf-8"))[-256:]),
         ("C5_wiki_no_final_900",  list(poem_wiki_no_final.encode("utf-8"))[-900:]),
         ("C6_last_stanza",        list(LAST_STANZA.encode("utf-8"))),
-        ("C7_wiki_outra_900",     list(poem_wiki_outra.encode("utf-8"))[-900:]),
+        ("C7_wiki_modern_900",    list(poem_wiki_modern.encode("utf-8"))[-900:]),
     ]
 
     # ── Prefix definitions ────────────────────────────────────────────────────
