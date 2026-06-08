@@ -82,7 +82,7 @@ The wrong paths, condensed.
 
 **Checkpoint inspection.** The `.pt` file contains exactly three keys: model weights, model config, tokenizer config. No hidden metadata, no flag, no extra fields.
 
-All of these treated the model as a scoring oracle. None of them asked it to generate.
+All of these treated the model as a scoring oracle. None of them asked it to generate. I kept adding candidates to the list, convinced that the answer was a name I hadn't thought of yet.
 
 ---
 
@@ -113,9 +113,11 @@ Greedy generation from this context produces:
 \n\n\nAh! não ser eu toda a gente que me acontece!\n\n\n...
 ```
 
-The phrase repeats. The model has memorised it as the natural continuation of the poem's closing cry — almost certainly from a literary essay or commentary in the training corpus that paraphrases the final stanza. It is not in the original poem.
+The phrase repeats. I stared at it for a moment, not sure what I was looking at. It was not in the original poem. It did not match any of the 80+ candidates I had been scoring. It was just — something the model wanted to say, given the right context to say it in.
 
-This is the moment the mode of attack shifts: instead of asking "which candidate string has highest probability?", the question becomes "what does the model say when you let it talk?"
+The model had memorised it as the natural continuation of the poem's closing cry — almost certainly from a literary essay or commentary that paraphrases the final stanza. But what mattered was the realisation it forced: I had spent days asking *"which of these strings is most probable?"* when the right question was *"what does the model say when you let it talk?"*
+
+That shift — from scoring to listening — is the whole solve.
 
 ### Step 4 — Normalise to a flag
 
@@ -301,11 +303,13 @@ A subtly different lament. Not the inability to be *everywhere*, but to absorb *
 
 ### The false positive
 
-When `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` was submitted, the SSH connection closed immediately. We declared it correct. It was not.
+Somewhere around attempt 150, past midnight, the SSH connection finally dropped — and I let myself believe that meant I was done. The terminal went quiet. I typed the flag into the submission form and closed my laptop.
 
-An honest account: after roughly 150 prior attempts across multiple sessions, I finally saw a response that matched the expected shape — connection closed, silence. But I failed to re-run the post-candidate control in the same session. The control experiment (a wrong flag of the same length staying open) had been run earlier, before the rate limit was active, so the comparison was invalid. The server's brute-force protection closed the connection — not because the flag was right.
+It was not correct.
 
-An earlier claim also required correction. We had reported that special tokens `_` (ID 260) and `{` (ID 261) share identical embeddings (cosine similarity = 1.000). Re-auditing the embeddings in H09 showed this was an artefact of the earlier analysis tooling, not a real property of the model. What is true is that each token is identical to its own byte counterpart — token 260 has cosine = 1.000 with byte `_` (ID 95), token 261 with byte `{` (ID 123). They are copies of their byte equivalents. The supposed mystery dissolved on closer inspection.
+The actual cause was rate limiting. By the time I sent the candidate I had made roughly 150 SSH attempts across multiple sessions, and the server's brute-force protection closed the connection — not because the flag was right. My control experiment (a wrong flag of the same length, staying open) had been run hours earlier in a different session, before the rate limit was active. I had compared two observations from incompatible conditions and called it verification. One data point is not a protocol.
+
+A second error surfaced in the same re-audit. I had previously reported that special tokens `_` (ID 260) and `{` (ID 261) share identical embeddings (cosine similarity = 1.000). I had found this striking — a deliberate design choice, I thought. Re-running the analysis with corrected tooling showed it was an artefact of how I was computing the similarity, not a property of the model. What is actually true: each token is identical to its own byte counterpart — token 260 with byte `_` (ID 95), token 261 with byte `{` (ID 123). They are copies. The supposed mystery dissolved, and I felt the particular embarrassment of having written about a clue that was never there.
 
 ### Looking for the flag in model geometry
 
@@ -325,9 +329,9 @@ All float noise — which is exactly what you would expect. Around 40% of random
 
 ### Why the positional embeddings looked suspicious — and why they are not
 
-H11 turns to the positional embeddings (`wpe`, 1024 × 640), which looked suspicious at first: the matrix produced 5970 ASCII hits in H09 vs. 1332 for the token embeddings, and position 0 turned out to be a **16.2σ norm outlier** (L2 norm = 1.886 vs. mean = 1.252, std = 0.039). Several early positions carried unusually dense ASCII-looking patterns.
+H11 turns to the positional embeddings (`wpe`, 1024 × 640), which looked suspicious at first: the matrix produced 5970 ASCII hits in H09 vs. 1332 for the token embeddings, and position 0 turned out to be a **16.2σ norm outlier** (L2 norm = 1.886 vs. mean = 1.252, std = 0.039). Two days after the false positive, I was staring at that number and genuinely considering whether someone had planted something there.
 
-However, once you remember that position 0 receives gradient from every single training sequence — and that the heteronym token almost always sits there — the mystery dissolves. Per-row hit density across all 1024 positions follows a tight normal distribution (mean = 36.7, std = 5.6): the 32 outlier positions contain nothing that decodes to a readable string. Position 0 is not a secret channel; it is simply the most-trained row in the whole matrix. The elevated norm is a fingerprint of the training distribution.
+They had not. Once you remember that position 0 receives gradient from every single training sequence — and that the heteronym token almost always sits there — the mystery dissolves. Per-row hit density across all 1024 positions follows a tight normal distribution (mean = 36.7, std = 5.6): the 32 outlier positions contain nothing that decodes to a readable string. Position 0 is not a secret channel; it is simply the most-trained row in the whole matrix. The elevated norm is a fingerprint of the training distribution.
 
 **Conclusion.** A systematic audit of weights, embeddings, and positional matrices found no flag and no structure pointing toward one. The static-model hypothesis is rejected. Whatever the correct answer is, it is not literally inscribed in the numbers of `ode.pt`.
 
