@@ -1,14 +1,22 @@
-# Arcus Write-up: Ode Triunfal — First Blood
+# Arcus Write-up: Ode Triunfal — A False First Blood
 
 **Challenge:** Augusta Labs Arcus, Challenge I · Ode Triunfal  
-**Flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}`  
-**Result:** First blood (~714,000 global attempts, 0 prior solves)
+**Candidate flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}`  
+**Status:** Rejected by the organisers; kept here because the wrong answer turned out to tell a better story than a clean solve ever would.
 
 ---
 
 ## Executive summary
 
-The challenge gave four lines from *Ode Triunfal* and a `flag:` prompt, plus a byte-level GPT trained on Portuguese literature. The stanza was subtly altered — one word changed from *outrora* to *outra* — causing the model to strongly prefer a wrong literary name under that context, leading most attempts into a dead end. The flag was not hidden in model scores or checkpoint metadata; it was in the model's memorised continuation when given the full poem and the right authorship prefix. By restoring full-poem context, prefixing with `<|fernando_pessoa|>`, generating instead of scoring, and normalising the output, the model produced the unique phrase that became the flag. The solve hinged on treating the model as an author, not a classifier: listen to what it says under the intended context rather than just ranking what you already thought of.
+This challenge looked solved before it actually was. A byte-level GPT trained on Portuguese literature appeared to generate a unique, highly plausible flag candidate when prompted with the full text of *Ode Triunfal* and the `<|fernando_pessoa|>` prefix. The phrase normalised cleanly into `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}`, and an SSH disconnect made it look correct.
+
+It was not correct.
+
+This version of the write-up keeps that mistake intact instead of editing it away. The result is less a victory lap than an autopsy: how a deliberately altered stanza pushed the model toward a literary red herring, how generation succeeded where scoring failed, how a rate-limit artefact briefly masqueraded as verification, and how a later audit of embeddings and positional weights ruled out the most tempting static-model explanations.
+
+The central technical insight still stands. The challenge does not behave like a classification task where the solver ranks candidate strings until one wins. It behaves like a generation task: the model says interesting, corpus-shaped things only when given the right literary frame. The difficulty is that one of those things was convincing enough to be wrong for several days.
+
+What follows is therefore not just a solve attempt, but a case study in model forensics, false verification, and the hazards of listening to a language model at exactly the moment it starts sounding most persuasive.
 
 ---
 

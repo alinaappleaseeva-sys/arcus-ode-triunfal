@@ -124,3 +124,46 @@ Full poem loaded: 900 bytes (truncated to 900)
   Key phrase extracted:
     'Ah! não ser eu...
 ```
+
+### 20260608_092850 — h09_internal_representation_audit — OK (20s)
+```
+========================================================================
+  H09 — Internal representation audit
+  W shape: torch.Size([262, 640])  (vocab=262, n_embd=640)
+========================================================================
+
+── STEP A: L2 norm of all token embeddings ──────────────────────────
+  mean=2.2781  std=0.7068
+  2σ threshold: >3.6917  or  <0.8644
+
+  All special tokens (IDs 256-261):
+    ID 256  norm=0.7229  z=-2.20  <|fernando_pessoa|> ← OUTLIER
+    ID 257  norm=0.762...
+```
+
+### 20260608_093707 — h10_heteronym_cluster_geometry — OK (0s)
+```
+========================================================================
+  H10 — Heteronym cluster geometry
+========================================================================
+
+── 1. Vocabulary centroids ──────────────────────────────────────────
+  Full vocab centroid norm:  1.6643
+  Byte-only centroid norm:   1.6798
+
+── 2/3. PCA on centred heteronym cluster ────────────────────────────
+  PC1: singular value=0.2730  variance explained=59.6%
+  PC2: singular value=0.1868  variance explained=2...
+```
+
+### 20260608_094354 — h11_positional_embedding_audit — ERROR (1s)
+```
+========================================================================
+  H11 — Positional embedding audit
+  wpe shape: torch.Size([1024, 640])  (2560 bytes/row)
+========================================================================
+
+── 1. Per-row ASCII density (hits ≥4 chars per 2560 bytes) ──────────
+  mean hits/row=36.68  std=5.64  2σ threshold=47.96
+  Outlier positions (>48.0 hits): [16, 25, 91, 152, 169, 177, 199, 207, 234, 241, 245, 334, 342, 362, 363, 365, 375, 429, 430, 461, 465, 542,...
+```
