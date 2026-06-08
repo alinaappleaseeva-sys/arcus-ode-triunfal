@@ -77,3 +77,50 @@ Rank     LogProb      PPL  Candidate
        -6.88     1.50  ' de Sá-Carneiro.'  ← TRY
       -16.57     2.82  '\nFe...
 ```
+
+### 20260606_221144 — h07_beam_search — ERROR (45s)
+```
+Full poem loaded: 900 bytes (truncated to 900)
+========================================================================
+  H07 — Beam search over printable ASCII
+  beam_width=10, max_new=30, stop_at='}'
+========================================================================
+
+────────────────────────────────────────────────────────────────────────
+  Context: 'SSH 4-line stanza'  (252 tokens)
+────────────────────────────────────────────────────────────────────────
+
+  [A] Beam search — printable AS...
+```
+
+### 20260606_222257 — h07_beam_search — OK (522s)
+```
+Full poem loaded: 900 bytes (truncated to 900)
+========================================================================
+  H07 — Beam search over printable ASCII
+  beam_width=10, max_new=30, stop_at='}'
+========================================================================
+
+────────────────────────────────────────────────────────────────────────
+  Context: 'SSH 4-line stanza'  (252 tokens)
+────────────────────────────────────────────────────────────────────────
+
+  [A] Beam search — printable AS...
+```
+
+### 20260606_232812 — h08_solution — OK (39s)
+```
+========================================================================
+  H08 — Solution: full poem + <|fp|> → greedy → flag
+========================================================================
+
+  Full poem loaded: 900 bytes (truncated to 900)
+
+  Generating from [<|fp|>] + poem (max 120 tokens)...
+
+  Generated text:
+    '\n\n\nAh! não ser eu toda a gente que me acontece!\n\n\nAh! não ser eu toda a gente que me acontece!\n\n\nAh! não ser eu toda '
+
+  Key phrase extracted:
+    'Ah! não ser eu...
+```
