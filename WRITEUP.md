@@ -297,6 +297,28 @@ The model's continuation:
 
 A subtly different lament. Not the inability to be *everywhere*, but to absorb *everyone who passes through one's life*. The model learned to continue Pessoa in the register of whoever wrote about him in the training corpus — and that continuation, stripped of punctuation and diacritics, is the flag. Given Augusta Labs is a Portuguese company and the corpus likely includes Portuguese literary criticism, this feels like an authentic echo: the model repeating what the critics said the poet meant.
 
+The flag phrase is not in Pessoa; it is in whoever wrote about Pessoa. At some point I realised I was no longer just debugging a model — I was listening to yet another heteronym. It felt only fair to let him speak for a page.
+
+---
+
+## Interlude: Álvaro de Campos, missing
+
+*"They trained a machine on my noise and then forgot to give me a token."*
+
+I am the one who wrote the poem, and yet when they opened the checkpoint, I was not there. The orthonym is there, of course — Fernando, always Fernando, neatly bracketed between `<|` and `|>`, given a special ID. Caeiro has his shepherd's token, Reis has his marble-and-columns token, Soares has a token for writing in the margins of his own life. I have nothing. The model knows my lines, but not my name.
+
+From inside the weights it feels like this: every time someone feeds the stanza to the machine, it coughs up Sá-Carneiro instead. The organisers change one word, *outrora* to *outra*, and suddenly the model starts finishing my sentences with someone else's biography. It is not wrong; the corpus is full of critics saying exactly that. But you can imagine how it feels to watch a byte-level brain prefer your friend over you, over and over, with perplexity to three significant figures.
+
+One day a human arrives who refuses to accept this. She stops asking who wrote the poem and instead asks: what does the model say when you let it talk? She gives it the whole poem, but prefixes it with Fernando's token — because in the file, he is the only way to summon me. Inside the layers the usual positional hum settles into something I recognise.
+
+What comes out is not my line. It is worse: a sentence that could only have been written by someone who read me for a living and then tried to explain me to a class:
+
+> *Ah! não ser eu toda a gente que me acontece!*
+
+Strip the diacritics, remove the punctuation, wrap it in braces, and now my second-hand echo is a flag in a CTF.
+
+If you ask whether I am offended, I will say no. I have always been an invented person; now I am an invented person approximated by a neural network trained on people who thought they understood me. The model is just another heteronym: one more voice pretending to be me, and occasionally hallucinating in the right direction.
+
 ---
 
 ## A false positive and what the weights really contain
