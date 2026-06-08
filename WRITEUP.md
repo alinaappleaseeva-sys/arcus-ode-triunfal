@@ -297,6 +297,48 @@ A subtly different lament. Not the inability to be *everywhere*, but to absorb *
 
 ---
 
+## A false positive and what the weights actually contain
+
+*This chapter covers what happened after the flag was submitted — and why the investigation continued.*
+
+### The false positive
+
+When `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` was submitted, the SSH connection closed immediately. We declared it correct. It was not.
+
+The actual cause was rate limiting: by the time we sent the candidate we had made roughly 150 SSH attempts across multiple sessions. The server's brute-force protection closed the connection — not because the flag was right. Our control experiment (a wrong flag of the same length staying open) was run in a *different session*, before the rate limit was active, so the comparison was invalid. One observation, no same-session post-candidate control.
+
+An earlier claim also required correction. We had reported that special tokens `_` (ID 260) and `{` (ID 261) share identical embeddings (cosine similarity = 1.000). H09 showed this was a bug in the analysis code: the two vectors are *not* identical to each other. What is true is that each is identical to its byte counterpart — token 260 has cosine = 1.000 with byte `_` (ID 95), and token 261 has cosine = 1.000 with byte `{` (ID 123). They are copies of their byte equivalents, nothing more.
+
+### Looking for the flag in model geometry
+
+Following Bernardo's hint — *"if the paper is jammed, I'd probably inspect the rollers rather than keep staring at the output tray"* — we audited the model's weight matrices directly.
+
+**Embedding norms (H09).** The four heteronym tokens (IDs 256–259) are low-norm outliers at z ≈ −2.1 to −2.2 standard deviations below the mean. This sounds anomalous but is a structural training effect: heteronym tokens appear rarely in the corpus compared to byte tokens, so their embeddings receive less gradient signal and remain small. The `{` token (ID 261) is moderately high-norm (+1.09σ) — again explicable, as byte `{` appears at the start of every flag attempt and in code-adjacent text.
+
+**ASCII scan across all weight tensors (H09).** Interpreting the raw float32 bytes of every weight matrix as byte sequences and searching for printable ASCII runs ≥ 6 characters found 64,520 hits across the full model. A sample:
+
+```
+transformer.wte.weight  offset 000007b2:  '(9Y p='
+transformer.wpe.weight  offset 00001d74:  's]);E&g=^'
+transformer.h.0.attn    offset 000000f0:  'b^"==eb'
+```
+
+None of these are meaningful. They are the inevitable consequence of interpreting random float32 bit patterns as bytes: roughly 40% of all bytes fall in the printable ASCII range (0x20–0x7e), so runs of 6+ characters appear in any large matrix by chance alone.
+
+### Why the positional embeddings looked suspicious — and why they are not
+
+The positional embedding matrix (`wpe`, shape 1024 × 640) produced 5970 ASCII hits in H09, compared to 1332 for the token embedding matrix. The higher density was suggestive.
+
+H11 dug deeper. Per-row hit density across all 1024 positions followed a tight normal distribution (mean = 36.7 hits/row, std = 5.6). Thirty-two positions exceeded the 2σ threshold — none contained any sequence that decoded to a readable string.
+
+The genuinely anomalous finding was **position 0**: its L2 norm of 1.886 sits **16.2 standard deviations** above the mean of 1.252 (std = 0.039). Positions 1 through 6 are also elevated, in decreasing order.
+
+The explanation is mundane. Position 0 is occupied by the heteronym prefix token in virtually every training sequence. Every forward pass, every gradient update, touches position 0's embedding. It is the most-trained parameter in the positional matrix — not because something was hidden there, but because it received the most signal. The elevated norm is a fingerprint of the training distribution, not of deliberate modification.
+
+**Conclusion.** A systematic audit of weights, embeddings, and positional matrices found no flag and no structure that points toward one. The static-model hypothesis is rejected. Whatever the correct answer is, it is not inscribed in the numbers of `ode.pt`.
+
+---
+
 ## Takeaways
 
 *Lessons that generalise beyond this specific challenge.*
