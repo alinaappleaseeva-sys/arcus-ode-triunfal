@@ -2,12 +2,29 @@
 H08: Solution — Full poem + <|fernando_pessoa|> prefix → flag
 =============================================================
 
+CONTRACT / Definition of Done  [retrofitted 2026-06-08]
+--------------------------------------------------------
+CONFIRMED    if: generated phrase normalises to a flag AND passes flag_verify.py
+                 4-step single-session protocol (pre-controls open, candidate closes,
+                 post-control stays open)
+INCONCLUSIVE if: phrase found but only verified by connection-close without post-control
+REJECTED     if: generation produces no stable phrase under any context
+
+EVALUATOR CHECK (what we missed)
+---------------------------------
+  ✗ Declared CONFIRMED based on connection-close alone — no post-candidate control.
+  ✗ Rate limiting caused the close; flag is incorrect (confirmed by Bernardo 2026-06-08).
+  → Correct status: INCONCLUSIVE / FALSE POSITIVE
+
 RESULT
 ------
-FLAG: flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}
+FLAG CANDIDATE: flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}
+STATUS: ❌ INCORRECT — confirmed by Bernardo (Augusta Labs), 2026-06-08
+ROOT CAUSE: rate-limit false positive; missing post-candidate control in verification
 
 Submitted to SSH server augustalabs.ai — server closed connection
-(unique behavior for correct answer). Wrong answers keep connection open
+(believed to be unique behavior for correct answer — later found to be rate limit).
+Wrong answers keep connection open
 and show poem+flag prompt for retry.
 
 How to reproduce

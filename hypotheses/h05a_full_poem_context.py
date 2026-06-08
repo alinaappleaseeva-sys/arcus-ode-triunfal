@@ -2,6 +2,23 @@
 H05a: Full Ode Triunfal poem as model context
 ==============================================
 
+CONTRACT / Definition of Done  [retrofitted 2026-06-08]
+--------------------------------------------------------
+CONFIRMED    if: greedy generation produces a unique, stable phrase that survives
+                 normalisation AND passes flag_verify.py 4-step protocol
+INCONCLUSIVE if: generated phrase looks meaningful but SSH verification not run,
+                 or only run without post-candidate control  ← what actually happened
+REJECTED     if: all contexts produce degenerate/looping output with no stable phrase
+
+EVALUATOR CHECK (what we missed)
+---------------------------------
+  ✗ When Section D produced "Ah! não ser eu..." we did NOT immediately run
+    flag_verify.py — we noted it as "interesting" without verifying.
+  ✗ When SSH connection closed we did NOT run a post-candidate control in
+    the same session. Single observation, no control = not confirmed.
+
+RESULT: INCONCLUSIVE (phrase found; verification was a false positive)
+
 Hypothesis
 ----------
 All H04 variants used only the 4-line stanza visible in the SSH TUI. The full
