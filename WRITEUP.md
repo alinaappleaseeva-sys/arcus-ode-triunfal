@@ -363,15 +363,17 @@ H11 turns to the positional embeddings (`wpe`, 1024 × 640), which looked suspic
 
 They had not. Once you remember that position 0 receives gradient from every single training sequence — and that the heteronym token almost always sits there — the mystery dissolves. Per-row hit density across all 1024 positions follows a tight normal distribution (mean = 36.7, std = 5.6): the 32 outlier positions contain nothing that decodes to a readable string. Position 0 is not a secret channel; it is simply the most-trained row in the whole matrix. The elevated norm is a fingerprint of the training distribution.
 
-**Conclusion.** A systematic audit of weights, embeddings, and positional matrices found no flag and no structure pointing toward one. The static-model hypothesis is rejected. Whatever the correct answer is, it is not literally inscribed in the numbers of `ode.pt`.
-
 ### H12: what the lm_head did not hide
 
-If a flag were nudged statically into the model, `lm_head.weight` — the final projection from hidden space to logits — would be the most efficient place to put it: a biased column raises one token's logit across *all* contexts, and a biased row boosts all tokens in proportion to one hidden feature. H12 audits both.
+If a flag were statically nudged into the model, `lm_head.weight` — the final projection from hidden space to logits — would be one of the most efficient places to do it. A biased row could favour specific output bytes directly; a biased column could amplify one hidden direction across many tokens. H12 audits both possibilities.
 
-Row norms across the 95 ASCII-printable tokens (ids 32–126) are essentially flat: the maximum z-score is 2.64 (`\`` backtick), well below the 3.5σ threshold set in the contract, and the byte that would need to spike most to form any plausible flag candidate sits comfortably within one standard deviation of the mean. The centroid-projection test — projecting all ASCII token rows onto the centroid of the false-positive phrase's byte vectors — surfaces only five tokens outside the seed set (`i p f l v`), which is noise, not signal. The column-norm picture is more interesting: hidden feature 82 reaches z = 8.3, and features 287, 578, 470 and 26 all exceed z = 5. That looks alarming until you cross-reference with the training setup: a small GPT trained on Portuguese text will naturally concentrate variance in a handful of hidden dimensions that track frequent grammatical patterns (vowel harmony, -ção endings, determiner agreement). None of those high-norm columns decode to anything printable when treated as a byte sequence, and the spike does not move the needle on any flag candidate.
+Row norms across the 95 printable ASCII tokens (ids 32–126) are quiet. The maximum z-score is 2.64 (the backtick, `` ` ``), below the 3.5σ threshold set in the contract, and no byte associated with a plausible flag shape stands out. A centroid-projection test, using the false-positive candidate as a seed, surfaces only five non-seed bytes in the top twenty (`i`, `p`, `f`, `l`, `v`) — noise, not a nearby hidden phrase.
 
-**H12 status: REJECTED.** The output projection carries no anomalous encoding of the flag. Combined with H09 (token embeddings), H10 (heteronym cluster geometry), and H11 (positional embeddings), every plausible static hiding place in `ode.pt` has now been checked and cleared.
+The column view looks more dramatic at first: feature 82 reaches z = 8.3, and several others exceed z = 5. But this is exactly the sort of concentration a small GPT can develop when trained on a morphologically rich language: a handful of hidden dimensions end up carrying a disproportionate share of common grammatical structure. None of the high-norm columns decodes to anything readable when treated as bytes, and none sharpens any flag candidate.
+
+**H12 status: REJECTED.** The output projection contains no anomalous token pattern, no readable byte structure, and no sign of a statically encoded flag. Together, H09–H12 close the four most plausible static hiding places in `ode.pt`: token embeddings, weight tensors, positional embeddings, and the output head.
+
+**Conclusion.** A systematic audit of weights, embeddings, positional matrices, and the output head found no flag and no structure pointing toward one. The static-model hypothesis is rejected. Whatever the correct answer is, it is not literally inscribed in the numbers of `ode.pt`.
 
 ---
 
