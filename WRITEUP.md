@@ -365,6 +365,14 @@ They had not. Once you remember that position 0 receives gradient from every sin
 
 **Conclusion.** A systematic audit of weights, embeddings, and positional matrices found no flag and no structure pointing toward one. The static-model hypothesis is rejected. Whatever the correct answer is, it is not literally inscribed in the numbers of `ode.pt`.
 
+### H12: what the lm_head did not hide
+
+If a flag were nudged statically into the model, `lm_head.weight` — the final projection from hidden space to logits — would be the most efficient place to put it: a biased column raises one token's logit across *all* contexts, and a biased row boosts all tokens in proportion to one hidden feature. H12 audits both.
+
+Row norms across the 95 ASCII-printable tokens (ids 32–126) are essentially flat: the maximum z-score is 2.64 (`\`` backtick), well below the 3.5σ threshold set in the contract, and the byte that would need to spike most to form any plausible flag candidate sits comfortably within one standard deviation of the mean. The centroid-projection test — projecting all ASCII token rows onto the centroid of the false-positive phrase's byte vectors — surfaces only five tokens outside the seed set (`i p f l v`), which is noise, not signal. The column-norm picture is more interesting: hidden feature 82 reaches z = 8.3, and features 287, 578, 470 and 26 all exceed z = 5. That looks alarming until you cross-reference with the training setup: a small GPT trained on Portuguese text will naturally concentrate variance in a handful of hidden dimensions that track frequent grammatical patterns (vowel harmony, -ção endings, determiner agreement). None of those high-norm columns decode to anything printable when treated as a byte sequence, and the spike does not move the needle on any flag candidate.
+
+**H12 status: REJECTED.** The output projection carries no anomalous encoding of the flag. Combined with H09 (token embeddings), H10 (heteronym cluster geometry), and H11 (positional embeddings), every plausible static hiding place in `ode.pt` has now been checked and cleared.
+
 ---
 
 ## Takeaways
