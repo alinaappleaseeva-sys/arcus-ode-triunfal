@@ -8,7 +8,7 @@
 
 ## Executive summary
 
-The challenge gave four lines from *Ode Triunfal* and a `flag:` prompt, plus a byte-level GPT trained on Portuguese literature. The stanza was subtly altered — one word changed from *outrora* to *outra* — causing the model to strongly prefer a wrong literary name under that context, leading most attempts into a dead end. The flag was not hidden in model scores or checkpoint metadata; it was in the model's memorised continuation when given the full poem and the right authorship prefix. By restoring full-poem context, prefixing with `<|fernando_pessoa|>`, generating instead of scoring, and normalising the output, the model produced the unique phrase that became the flag. The solve hinged on treating the model as an author, not a classifier: listen to what it says under the intended context rather than ranking what you already thought of.
+The challenge gave four lines from *Ode Triunfal* and a `flag:` prompt, plus a byte-level GPT trained on Portuguese literature. The stanza was subtly altered — one word changed from *outrora* to *outra* — causing the model to strongly prefer a wrong literary name under that context, leading most attempts into a dead end. The flag was not hidden in model scores or checkpoint metadata; it was in the model's memorised continuation when given the full poem and the right authorship prefix. By restoring full-poem context, prefixing with `<|fernando_pessoa|>`, generating instead of scoring, and normalising the output, the model produced the unique phrase that became the flag. The solve hinged on treating the model as an author, not a classifier: listen to what it says under the intended context rather than just ranking what you already thought of.
 
 ---
 
@@ -53,7 +53,7 @@ Caeiro, Reis, Soares — all present. Álvaro de Campos, the actual author of th
 
 ### Identical separator tokens
 
-Tokens 260 (`_`) and 261 (`{`) share exactly the same embedding vector: cosine similarity = 1.000, identical L2 norm of 3.05 — notably higher than the ~2.30 mean for regular byte tokens. The model treats them as the same structural marker. Their names together with the `flag{...}` format strongly hinted at flag generation via these tokens, but every attempt to generate `flag{...}` directly produced degenerate output. The hint was a dead end.
+Tokens 260 (`_`) and 261 (`{`) share exactly the same embedding vector: cosine similarity = 1.000, identical L2 norm of 3.05 — notably higher than the ~2.30 mean for regular byte tokens. The model treats them as the same structural marker. Their names together with the `flag{...}` format strongly hinted at flag generation via these tokens, but every attempt to generate `flag{...}` directly produced degenerate output. The hint was a dead end — a structural curiosity, not a hidden channel.
 
 ---
 
@@ -113,7 +113,7 @@ Greedy generation from this context produces:
 \n\n\nAh! não ser eu toda a gente que me acontece!\n\n\n...
 ```
 
-The phrase repeats. I stared at it for a moment, not sure what I was looking at. It was not in the original poem. It did not match any of the 80+ candidates I had been scoring. It was just — something the model wanted to say, given the right context to say it in.
+The phrase repeats. I stared at it for a moment, not sure what I was looking at. It was not in the original poem. It did not match any of the 80+ candidates I had been scoring. It was simply something the model wanted to say, given the right context to say it in.
 
 The model had memorised it as the natural continuation of the poem's closing cry — almost certainly from a literary essay or commentary that paraphrases the final stanza. But what mattered was the realisation it forced: I had spent days asking *"which of these strings is most probable?"* when the right question was *"what does the model say when you let it talk?"*
 
@@ -331,7 +331,7 @@ It was not correct.
 
 The actual cause was rate limiting. By the time I sent the candidate I had made roughly 150 SSH attempts across multiple sessions, and the server's brute-force protection closed the connection — not because the flag was right. My control experiment (a wrong flag of the same length, staying open) had been run hours earlier in a different session, before the rate limit was active. I had compared two observations from incompatible conditions and called it verification. One data point is not a protocol.
 
-A second error surfaced in the same re-audit. I had previously reported that special tokens `_` (ID 260) and `{` (ID 261) share identical embeddings (cosine similarity = 1.000). I had found this striking — a deliberate design choice, I thought. Re-running the analysis with corrected tooling showed it was an artefact of how I was computing the similarity, not a property of the model. What is actually true: each token is identical to its own byte counterpart — token 260 with byte `_` (ID 95), token 261 with byte `{` (ID 123). They are copies. The supposed mystery dissolved, and I felt the particular embarrassment of having written about a clue that was never there.
+A second error surfaced in the same re-audit. I had previously reported that special tokens `_` (ID 260) and `{` (ID 261) share identical embeddings (cosine similarity = 1.000). I had found this striking — a deliberate design choice, I thought. Re-running the analysis with corrected tooling showed it was an artefact of how I was computing the similarity, not a property of the model. What is actually true: each token is identical to its own byte counterpart — token 260 with byte `_` (ID 95), token 261 with byte `{` (ID 123). They are copies. The supposed mystery dissolved, and I felt the particular embarrassment of having written at length about a clue that was never there.
 
 ### Looking for the flag in model geometry
 
