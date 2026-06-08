@@ -199,15 +199,21 @@ def run():
     cutpoint = poem_wiki_full.rfind("Eia comboios")
     poem_wiki_no_final = poem_wiki_full[:cutpoint].rstrip() if cutpoint != -1 else poem_wiki_full
 
+    # Context C7: wiki with "outra" instead of "outrora" — matches the SSH challenge text.
+    # Hypothesis: the model may have been trained on a corpus that uses this variant,
+    # which would explain why the SSH stanza uses "outra" rather than the Wikisource form.
+    poem_wiki_outra = poem_wiki_full.replace("outrora", "outra")
+
     # ── Context definitions ───────────────────────────────────────────────────
     contexts = [
         # (label,               bytes_to_use)
-        ("C1_ssh_stanza",       list(SSH_STANZA.encode("utf-8"))),
-        ("C2_wiki_900",         list(poem_wiki_full.encode("utf-8"))[-900:]),
-        ("C3_wiki_512",         list(poem_wiki_full.encode("utf-8"))[-512:]),
-        ("C4_wiki_256",         list(poem_wiki_full.encode("utf-8"))[-256:]),
-        ("C5_wiki_no_final_900",list(poem_wiki_no_final.encode("utf-8"))[-900:]),
-        ("C6_last_stanza",      list(LAST_STANZA.encode("utf-8"))),
+        ("C1_ssh_stanza",         list(SSH_STANZA.encode("utf-8"))),
+        ("C2_wiki_900",           list(poem_wiki_full.encode("utf-8"))[-900:]),
+        ("C3_wiki_512",           list(poem_wiki_full.encode("utf-8"))[-512:]),
+        ("C4_wiki_256",           list(poem_wiki_full.encode("utf-8"))[-256:]),
+        ("C5_wiki_no_final_900",  list(poem_wiki_no_final.encode("utf-8"))[-900:]),
+        ("C6_last_stanza",        list(LAST_STANZA.encode("utf-8"))),
+        ("C7_wiki_outra_900",     list(poem_wiki_outra.encode("utf-8"))[-900:]),
     ]
 
     # ── Prefix definitions ────────────────────────────────────────────────────
