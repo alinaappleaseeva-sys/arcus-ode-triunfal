@@ -377,6 +377,22 @@ The column view looks more dramatic at first: feature 82 reaches z = 8.3, and se
 
 ---
 
+## H14: the generation grid — a map of the model's attractors
+
+After closing every static hypothesis, the investigation returned to where it should have stayed: generation. H14 runs a 7 × 3 × 2 grid — seven context variants (different sources, truncation points, and orthography) crossed with three prefixes (none, `<|fernando_pessoa|>`, and a text-byte Álvaro de Campos simulation) and two generation modes (greedy and temperature 0.8 / top-k 40). Forty-two rows in total.
+
+The grid makes one thing immediately clear: **the model has two dominant attractors near the end of the poem**, and which one fires depends almost entirely on the truncation point, not on the prefix.
+
+Contexts that include the full final stanza (`Ah não ser eu toda a gente e toda a parte!` still in the window) produce the false-positive phrase under greedy decoding — confirming that H08's generation was not a fluke, just the wrong phrase. Contexts built from the last stanza alone, without the preceding `[-900:]` window, produce a clean structural variant: *"Ah! não ser eu toda a gente que eu tenho a minha alma!"* — same grammatical skeleton, different completion. Contexts truncated to `[-512:]` shift the window into the middle of the poem and yield a different register entirely: *"A Europa de Março de 1890."* — a dateline, not a cry.
+
+The most stable phrase across the grid is one that appears in seven cells at temperature 0.8, across three different contexts and all three prefixes: *"O amor da virtude seria um cachimbo de máquinas."* This is not in the original poem. It reads like a line from a literary essay — the kind of critical paraphrase that would appear in a corpus built around Pessoa scholarship. Its stability is striking: it does not depend on the prefix token, only on the presence of the final stanza's machinery imagery in the context window.
+
+Both new phrases were submitted via the four-step single-session protocol (pre-controls open → candidate → post-control). The structural variant (`que eu tenho a minha alma`) and `o amor da virtude...` both triggered connection closure — but so did the post-control, confirming rate-limiting rather than a correct answer. The third candidate (`a Europa de Março de 1890`) stayed open throughout: unambiguously wrong.
+
+**H14 status: no new flag.** But the grid is not a null result. It closes the question of whether a different context produces a fundamentally different phrase: yes, it does. It reveals the shape of the model's output space near this poem — two literary attractors and a set of degenerate loops — and it confirms that the false-positive mechanism was real and reproducible, not a coincidence. Whatever the correct phrase is, it shares a neighbourhood with these.
+
+---
+
 ## Takeaways
 
 *Lessons that generalise beyond this specific challenge.*
