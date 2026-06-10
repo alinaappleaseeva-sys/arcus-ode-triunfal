@@ -393,6 +393,37 @@ Both new phrases were submitted via the four-step single-session protocol (pre-c
 
 ---
 
+## A final discovery: the SSH server is not a verification oracle
+
+Two discoveries made late in the investigation changed how we read every SSH result that came before.
+
+**The server uses prefix matching.** Every flag beginning with `ah_nao_ser_eu_toda_a_gente_que_` causes the server to close the connection immediately, regardless of what follows. Confirmed across three independent sessions:
+
+| Flag submitted | Bytes on close | Connection |
+|---|---|---|
+| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` | 46 | instant close |
+| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_vida}` | 46 | instant close |
+| `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` | 46 | instant close |
+| `flag{oooooooooooooooooooooooooooooooooooooooooooooooo}` | 271 | open (countdown visible) |
+
+The 46-byte sequence is identical across all three `que_*` variants:
+
+```
+1b5b3e346d 1b5b3d303b3175 1b5b32343b3148 1b5b3f313034396c 1b5b3f3235681b5b3f323030346c 1b5d323b07
+```
+
+This is the PTY shell teardown: `\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25h\x1b[?2004l\x1b]2;\x07`. No congratulations text, no confirmation — just the terminal closing. This is what the server sends when the *process exits*, not when a flag is accepted.
+
+**Retroactive explanation of the original false positive.** The very first candidate, `ah_nao_ser_eu_toda_a_gente_que_me_acontece`, starts with exactly this prefix. The connection close that looked like confirmation was this same prefix trigger. The organiser confirmed it incorrect; this is the mechanism.
+
+**The server has no success response we have ever seen.** Probing the interface further (`help`, `status`, `leaderboard`, `hint`, `?`) reveals that the SSH server accepts exactly one interaction: a `flag:` submission. Every other command either redraws the main screen or returns silence. There is no automated success message, no leaderboard, no confirmation path. The attempt counter (`237,750` at time of writing) is a static snapshot that does not update between requests. First blood was confirmed by the organiser by email — the SSH server is a submission logger, not a judge.
+
+**Scope of this finding.** The prefix-match close was confirmed for three variants of the `ah_nao_ser_eu_toda_a_gente_que_*` family and one structurally neutral control (`flag{ooo...}`). Whether the same mechanism applies to other candidate families — for example `flag{o_amor_da_virtude_seria_um_cachimbo_de_maquinas}` — was not tested with a clean controlled session. SSH is not a reliable oracle for candidates in the `ah_nao_ser_eu_toda_a_gente_que_*` family. Whether the same applies to other candidate families was not established.
+
+**What this means for our `que_*` candidates.** We cannot distinguish a correct flag from a wrong one within this prefix family by observing the connection: both produce the same 46-byte close. The correct flag might produce additional bytes before the teardown (a congratulations message we have never seen), or it might not. We do not know, because as of the time of writing, the challenge has not been solved by automated means — first blood was confirmed manually. The best remaining evidence is the model's deterministic greedy output: `ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma`.
+
+---
+
 ## Takeaways
 
 *Lessons that generalise beyond this specific challenge.*
@@ -402,6 +433,8 @@ Both new phrases were submitted via the four-step single-session protocol (pre-c
 **The missing element is a clue.** Álvaro de Campos is the author of the poem and the one token not in the model. That absence points toward Fernando Pessoa as the right prefix — the orthonym who contains all the heteronyms, including the one that isn't there.
 
 **Assume the inputs have been tampered with.** The swapped word, the absent heteronym, the identical `_`/`{` tokens — all are deliberate design choices. Treat every feature of the challenge as potentially meaningful and potentially misleading.
+
+**The submission interface is not the verification interface.** The SSH server accepts flag attempts and logs them — it is not a judge. Connection close is not a confirmation of correctness; it may be a rate-limit, a prefix trigger, or simply PTY teardown with no semantic meaning. In this challenge, the only ground truth was the organiser. Design your verification loop around that, not around the behaviour of an opaque TCP connection.
 
 ---
 
