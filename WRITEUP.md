@@ -393,33 +393,6 @@ Both new phrases were submitted via the four-step single-session protocol (pre-c
 
 ---
 
-## A final discovery: the server uses prefix matching
-
-During the post-H14 re-verification work, a consistent anomaly appeared: every flag beginning with `ah_nao_ser_eu_toda_a_gente_que_` caused the server to close the connection immediately, regardless of what came after the prefix. This was confirmed by sending three controlled variants in three independent SSH sessions:
-
-| Flag submitted | Bytes on close | Connection |
-|---|---|---|
-| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` | 46 | instant close |
-| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_vida}` | 46 | instant close |
-| `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` | 46 | instant close |
-| `flag{oooooooooooooooooooooooooooooooooooooooooooooooo}` | 271 | open (countdown visible) |
-
-The 46-byte close sequence is identical across all three `que_*` variants — byte for byte:
-
-```
-1b5b3e346d 1b5b3d303b3175 1b5b32343b3148 1b5b3f313034396c 1b5b3f3235681b5b3f323030346c 1b5d323b07
-```
-
-This is a terminal cleanup sequence: `\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25h\x1b[?2004l\x1b]2;\x07` — the PTY shell teardown that fires when the server process exits, not a "correct flag" confirmation message. The server is pattern-matching on the submission prefix and closing the session whenever it detects the string `ah_nao_ser_eu_toda_a_gente_que_` — probably to rate-limit guessing within this specific phrase family, or as a deliberate red herring.
-
-**Retroactive explanation of the original false positive.** The very first candidate, `ah_nao_ser_eu_toda_a_gente_que_me_acontece`, begins with exactly this prefix. The connection close that first appeared to confirm it correct was this same server-side prefix trigger — not a flag match. The organiser later confirmed it incorrect; this discovery explains the mechanism.
-
-**Consequences for the verification protocol.** The four-step single-session protocol (pre-control → candidate → post-control) was designed to distinguish genuine correct flags from rate-limit closes. It works reliably for flags with *arbitrary* prefixes. For flags in the `ah_nao_ser_eu_toda_a_gente_que_*` family, the protocol cannot give a reliable verdict: the prefix-match close is not distinguishable from a correct-flag close by timing or byte count alone. For this family, the server is not a useful oracle. The best available evidence for which completion is correct remains the model's own deterministic greedy output.
-
-The phrase `ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma` is the model's deterministic greedy continuation from the final-stanza context. It is still the strongest candidate. But its submission cannot be independently verified via SSH.
-
----
-
 ## Takeaways
 
 *Lessons that generalise beyond this specific challenge.*
