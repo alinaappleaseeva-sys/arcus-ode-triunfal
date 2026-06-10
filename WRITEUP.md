@@ -434,6 +434,8 @@ This is the PTY shell teardown: `\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25
 
 **Assume the inputs have been tampered with.** The swapped word, the absent heteronym, the identical `_`/`{` tokens — all are deliberate design choices. Treat every feature of the challenge as potentially meaningful and potentially misleading.
 
+**The submission interface is not the verification interface.** The SSH server accepts flag attempts and logs them — it is not a judge. Connection close is not a confirmation of correctness; it may be a rate-limit, a prefix trigger, or simply PTY teardown with no semantic meaning. In this challenge, the only ground truth was the organiser. Design your verification loop around that, not around the behaviour of an opaque TCP connection.
+
 ---
 
 ## What I would do differently next time
