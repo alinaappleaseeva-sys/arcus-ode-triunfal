@@ -427,6 +427,8 @@ The most likely remaining explanation is that the server scores each submission 
 
 The best remaining evidence for the answer is therefore not the connection's behaviour but the model's own deterministic greedy output: `ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma`.
 
+**The cost of learning this late.** None of the above was knowable at the start, and that is the real lesson. Nowhere does the challenge state that the SSH server is a logger rather than a judge; nowhere does it say a closed connection scores content rather than confirming a flag. The interface *looks* like an oracle — you type a flag, something happens — and so for days I treated it as one, building an elaborate verification protocol (same-length controls, countdown detection, single-session triples) on top of a signal that was never designed to verify anything. The only way to discover what the close actually meant was to run controlled experiments against it — and I ran them far too late, after the false positive had already shaped the investigation. The expensive mistake here was not a wrong hypothesis about the poem; it was trusting an unexamined tool. By the time the `fox` control proved that a close means nothing about correctness, the lesson had already cost the most valuable thing in a timed challenge: days.
+
 ---
 
 ## Takeaways
