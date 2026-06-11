@@ -1,8 +1,8 @@
 # Arcus Write-up: Ode Triunfal — A False First Blood
 
 **Challenge:** Augusta Labs Arcus, Challenge I · Ode Triunfal  
-**Candidate flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}`  
-**Status:** Rejected by the organisers; kept here because the wrong answer turned out to tell a better story than a clean solve ever would.
+**False-positive flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` — rejected by the organisers; kept here because the wrong answer turned out to tell a better story than a clean solve ever would.  
+**Current best candidate (unverified):** `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` — the model's deterministic greedy output; cannot be confirmed via SSH (see *A final discovery*).
 
 ---
 
@@ -149,6 +149,8 @@ raw output:          "Ah! não ser eu toda a gente que me acontece!"
 
 The connection closure was confirmed by comparing against a wrong flag of identical length, ruling out any length-based explanation.
 
+> **This "verification" was false.** The length control had been run hours earlier in a different session, and the close itself turned out to be a content-scoring signal, not a confirmation — a known-wrong English pangram closes the connection identically. See [*A false positive and what the weights really contain*](#a-false-positive-and-what-the-weights-really-contain) and [*A final discovery*](#a-final-discovery-the-ssh-close-is-a-content-signal-not-a-correctness-oracle). The "solve" below is preserved as it happened, mistake and all.
+
 ---
 
 ## Reproducing the flag
@@ -287,7 +289,7 @@ This challenge was not accidentally hard — every obstacle had an author. The s
 
 **The correct answer was not a known fact.** The flag is not Álvaro de Campos's name, not the poem's title, not a date. It is a phrase the model generates — something that exists in the training corpus but has no obvious prior. You cannot guess it; you have to run the model and read what comes out.
 
-**714,000 attempts, zero prior solves.** Most attempts were probably name-guessing: heteronyms, Pessoa, Campos, the usual literary facts. None of those work. In model-based CTFs, always assume the organisers have tampered with both the input text and the training distribution in meaningful ways.
+**~251,000 attempts, first blood already claimed, no public solution.** The submission counter stood around 251,000 when I last checked, and the organiser had confirmed first blood was taken — yet no write-up or method was public. Most attempts were probably name-guessing: heteronyms, Pessoa, Campos, the usual literary facts. None of those work. In model-based CTFs, always assume the organisers have tampered with both the input text and the training distribution in meaningful ways.
 
 ---
 
@@ -332,6 +334,8 @@ If you ask whether I am offended, I will say no. I have always been an invented 
 ---
 
 ## A false positive and what the weights really contain
+
+> *A note on the H-numbers.* The investigation was tracked as a sequence of numbered hypotheses. Only the load-bearing ones appear in this write-up: **H08** is the generation solve above (Step 3 — *Generate, don't score*); **H09–H12** are the static-weight audits in this section (token embeddings, weight tensors, positional embeddings, output head); **H14** is the generation grid that follows. Gaps in the numbering are discarded dead ends.
 
 ### The false positive
 
