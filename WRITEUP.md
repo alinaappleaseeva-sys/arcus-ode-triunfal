@@ -18,6 +18,8 @@ The central technical insight still stands. The challenge does not behave like a
 
 What follows is therefore not just a solve attempt, but a case study in model forensics, false verification, and the hazards of listening to a language model at exactly the moment it starts sounding most persuasive.
 
+A final controlled experiment added one more layer: the SSH server turned out to be a content-scoring oracle, not a correctness one. The English pangram `the_quick_brown_fox_jumps_over_the_dog` closes the connection identically to our best candidate. The submission interface was never a judge.
+
 ---
 
 ## The central insight
@@ -387,40 +389,55 @@ Contexts that include the full final stanza (`Ah não ser eu toda a gente e toda
 
 The most stable phrase across the grid is one that appears in seven cells at temperature 0.8, across three different contexts and all three prefixes: *"O amor da virtude seria um cachimbo de máquinas."* This is not in the original poem. It reads like a line from a literary essay — the kind of critical paraphrase that would appear in a corpus built around Pessoa scholarship. Its stability is striking: it does not depend on the prefix token, only on the presence of the final stanza's machinery imagery in the context window.
 
-Both new phrases were submitted via the four-step single-session protocol (pre-controls open → candidate → post-control). The structural variant (`que eu tenho a minha alma`) and `o amor da virtude...` both triggered connection closure — but so did the post-control, confirming rate-limiting rather than a correct answer. The third candidate (`a Europa de Março de 1890`) stayed open throughout: unambiguously wrong.
+All three candidates were submitted over SSH, with the following results:
+
+| Candidate | Source | SSH result |
+|---|---|---|
+| `alma` (`que eu tenho a minha alma`) | C7 + `<\|fp\|>` + greedy | connection closes — but see below: **SSH-unverifiable** |
+| `cachimbo` (`o amor da virtude…`) | C2/C6/C7 + t=0.8 | connection closes — **SSH-unverifiable**, same mechanism |
+| `europa` (`a Europa de Março de 1890`) | C3 + greedy | connection stays open — **WRONG** |
+
+At the time, the two closures looked like near-misses and the open connection like a clean rejection. Subsequent SSH experiments (documented in *"A final discovery"* below) revealed that the verification protocol itself was broken for the closing candidates: the connection close is a content-scoring signal, not a correctness one. Any string with sufficiently low model perplexity triggers the same close — including the English pangram `the_quick_brown_fox_jumps_over_the_dog`, which is certainly not the flag. So the `alma` and `cachimbo` closures confirm only that both phrases sit in the model's low-loss region, which we already knew from generation. `europa` staying open remains a genuine rejection.
 
 **H14 status: no new flag.** But the grid is not a null result. It closes the question of whether a different context produces a fundamentally different phrase: yes, it does. It reveals the shape of the model's output space near this poem — two literary attractors and a set of degenerate loops — and it confirms that the false-positive mechanism was real and reproducible, not a coincidence. Whatever the correct phrase is, it shares a neighbourhood with these.
 
 ---
 
-## A final discovery: the SSH server is not a verification oracle
+## A final discovery: the SSH close is a content signal, not a correctness oracle
 
-Two discoveries made late in the investigation changed how we read every SSH result that came before.
+The investigation into the server's connection-close behaviour went through two wrong turns before landing on a clean result. Both wrong turns are worth recording, because each was a plausible story that more controlled measurement demolished.
 
-**The server uses prefix matching.** Every flag beginning with `ah_nao_ser_eu_toda_a_gente_que_` causes the server to close the connection immediately, regardless of what follows. Confirmed across three independent sessions:
+**Wrong turn 1: "prefix matching."** The first pattern I saw was that every flag beginning with `ah_nao_ser_eu_toda_a_gente_que_` closed the connection with an identical 46-byte PTY teardown (`\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25h\x1b[?2004l\x1b]2;\x07`), while garbage flags stayed open. I concluded the server was pattern-matching on that prefix. This was wrong: I had only tested the one family, so "shared prefix" was confounded with whatever the real trigger is.
 
-| Flag submitted | Bytes on close | Connection |
-|---|---|---|
-| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` | 46 | instant close |
-| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_vida}` | 46 | instant close |
-| `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` | 46 | instant close |
-| `flag{oooooooooooooooooooooooooooooooooooooooooooooooo}` | 271 | open (countdown visible) |
+**Wrong turn 2: "load artefact."** Testing a second phrase (`o_amor_da_virtude_seria_um_cachimbo_de_maquinas`) showed it *also* closed with the identical 46 bytes — a completely different prefix. Under heavy contention near the deadline (the global attempt counter climbed past 251,000), the rate-limit window oscillated between 0 and 8 every few seconds, and many closes coincided with the rate-limit countdown. It briefly looked as though the close might be a pure load artefact with no relation to flag content.
 
-The 46-byte sequence is identical across all three `que_*` variants:
+**The controlled result.** Resolving this required a statistical sweep: five flags, interleaved, each submitted only when a neutral probe confirmed the rate-limit window was high (≥ 5), with strict filtering of any trial confounded by the countdown reaching zero. The outcome is unambiguous:
 
-```
-1b5b3e346d 1b5b3d303b3175 1b5b32343b3148 1b5b3f313034396c 1b5b3f3235681b5b3f323030346c 1b5d323b07
-```
+| Flag | Description | Valid trials (window ≥ 5) | Close rate |
+|---|---|---|---|
+| `flag{nnnn…}` | garbage, one repeated char | 10 | **0 %** |
+| `flag{o_gato_preto_corre_pela_rua_de_noite}` | random Portuguese phrase, not in corpus | 10 | **0 %** |
+| `flag{fernando_pessoa_escreveu_ode_triunfal}` | known Portuguese corpus phrase | 10 | **0 %** |
+| `flag{the_quick_brown_fox_jumps_over_the_dog}` | English pangram | 24 | **100 %** |
+| `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` | model's greedy output (our candidate) | 25 | **100 %** |
 
-This is the PTY shell teardown: `\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25h\x1b[?2004l\x1b]2;\x07`. No congratulations text, no confirmation — just the terminal closing. This is what the server sends when the *process exits*, not when a flag is accepted.
+The closing flags close at windows of 5, 6, 7, and 8 — not at zero — so this is not the rate-limit. The split is a clean 100 % / 0 % across 20–35 trials per flag. **The close is deterministic in the flag's content.**
 
-**Retroactive explanation of the original false positive.** The very first candidate, `ah_nao_ser_eu_toda_a_gente_que_me_acontece`, starts with exactly this prefix. The connection close that looked like confirmation was this same prefix trigger. The organiser confirmed it incorrect; this is the mechanism.
+**What the result rules out.**
 
-**The server has no success response we have ever seen.** Probing the interface further (`help`, `status`, `leaderboard`, `hint`, `?`) reveals that the SSH server accepts exactly one interaction: a `flag:` submission. Every other command either redraws the main screen or returns silence. There is no automated success message, no leaderboard, no confirmation path. The attempt counter (`237,750` at time of writing) is a static snapshot that does not update between requests. First blood was confirmed by the organiser by email — the SSH server is a submission logger, not a judge.
+- *Not prefix matching.* The English pangram `fox` shares nothing with `ah_nao_ser_eu_toda_a_gente_que_` yet closes 100 % of the time.
+- *Not corpus membership.* `fernando_pessoa_escreveu_ode_triunfal` is a perfectly grammatical, on-topic Portuguese sentence about the poem, yet stays open 100 % of the time.
+- *Not any simple lexical rule.* Length fails (`nnnn` at 48 chars stays open; `fox` at 38 closes). Character diversity fails (`fernando` and `alma` both have 16 distinct characters, opposite outcomes). Language, real-word content, and underscore structure each get contradicted by at least one control.
 
-**Scope of this finding.** The prefix-match close was confirmed for three variants of the `ah_nao_ser_eu_toda_a_gente_que_*` family and one structurally neutral control (`flag{ooo...}`). Whether the same mechanism applies to other candidate families — for example `flag{o_amor_da_virtude_seria_um_cachimbo_de_maquinas}` — was not tested with a clean controlled session. SSH is not a reliable oracle for candidates in the `ah_nao_ser_eu_toda_a_gente_que_*` family. Whether the same applies to other candidate families was not established.
+The most likely remaining explanation is that the server scores each submission — plausibly with the model itself, e.g. a perplexity threshold — and closes when the score crosses some boundary. The flags it closes on (`alma`, `cachimbo` are both attractors of the model's own generation) sit in a low-loss region; the flags it leaves open do not. But this is unconfirmed, and the deadline did not allow a clean test of the scoring hypothesis.
 
-**What this means for our `que_*` candidates.** We cannot distinguish a correct flag from a wrong one within this prefix family by observing the connection: both produce the same 46-byte close. The correct flag might produce additional bytes before the teardown (a congratulations message we have never seen), or it might not. We do not know, because as of the time of writing, the challenge has not been solved by automated means — first blood was confirmed manually. The best remaining evidence is the model's deterministic greedy output: `ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma`.
+**Why this matters: the close is a content signal, but not a correctness oracle.** The decisive control is `fox`. The English pangram is *certainly* not the flag, yet it closes the connection exactly as our candidate does. So a close means a submission landed in some triggering region — a region that contains the real answer's neighbourhood *and* obvious red herrings — but it does **not** mean the flag is correct. This retroactively explains the original false positive (`que_me_acontece` closed because it sits in that region, not because it was right), and it is why the SSH connection can never, on its own, confirm a flag.
+
+**The server has no success response we have ever seen.** Probing the interface (`help`, `status`, `leaderboard`, `hint`, `?`) shows the server accepts exactly one interaction: a flag submission. Every other command redraws the splash screen or returns nothing. There is no leaderboard, no confirmation path; the attempt counter is a static snapshot that does not update between requests. First blood was confirmed by the organiser over email — the SSH server is a submission logger and a content-scorer, not a judge.
+
+The best remaining evidence for the answer is therefore not the connection's behaviour but the model's own deterministic greedy output: `ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma`.
+
+**The cost of learning this late.** None of the above was knowable at the start, and that is the real lesson. Nowhere does the challenge state that the SSH server is a logger rather than a judge; nowhere does it say a closed connection scores content rather than confirming a flag. The interface *looks* like an oracle — you type a flag, something happens — and so for days I treated it as one, building an elaborate verification protocol (same-length controls, countdown detection, single-session triples) on top of a signal that was never designed to verify anything. The only way to discover what the close actually meant was to run controlled experiments against it — and I ran them far too late, after the false positive had already shaped the investigation. The expensive mistake here was not a wrong hypothesis about the poem; it was trusting an unexamined tool. By the time the `fox` control proved that a close means nothing about correctness, the lesson had already cost the most valuable thing in a timed challenge: days.
 
 ---
 
@@ -434,7 +451,9 @@ This is the PTY shell teardown: `\x1b[>4m\x1b[=0;1u\x1b[24;1H\x1b[?1049l\x1b[?25
 
 **Assume the inputs have been tampered with.** The swapped word, the absent heteronym, the identical `_`/`{` tokens — all are deliberate design choices. Treat every feature of the challenge as potentially meaningful and potentially misleading.
 
-**The submission interface is not the verification interface.** The SSH server accepts flag attempts and logs them — it is not a judge. Connection close is not a confirmation of correctness; it may be a rate-limit, a prefix trigger, or simply PTY teardown with no semantic meaning. In this challenge, the only ground truth was the organiser. Design your verification loop around that, not around the behaviour of an opaque TCP connection.
+**The submission interface is not the verification interface.** The SSH server accepts flag attempts, scores them, and logs them — but it is not a judge. Its connection-close is a deterministic *content* signal (a known-wrong English pangram closes the connection exactly as our best candidate does), so a close means a submission landed in some triggering region, not that it was correct. In this challenge, the only ground truth was the organiser. Design your verification loop around that, not around the behaviour of an opaque TCP connection.
+
+**Measure before you conclude, then measure again.** The close behaviour produced two confident, wrong conclusions in a row — "prefix matching," then "load artefact" — each demolished by a more controlled experiment. The truth (a content-deterministic close that is nonetheless not a correctness signal) only emerged from an interleaved, validity-filtered statistical sweep. When a signal is noisy and the stakes are real, a clean experiment beats a plausible story every time.
 
 ---
 

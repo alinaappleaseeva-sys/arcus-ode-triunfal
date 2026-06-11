@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-06-11T06:28:22.562772+00:00",
+  "method": "close outcome at neutral-probe window>=5; countdown treated as incidental UI capture, not rate-limit",
+  "flags": {
+    "nnnn": "flag{nnnn...} (garbage, 1 char)",
+    "gato": "flag{o_gato_preto_corre_pela_rua_de_noite} (random PT phrase, not in corpus)",
+    "fox": "flag{the_quick_brown_fox_jumps_over_the_dog} (English pangram)",
+    "fernando": "flag{fernando_pessoa_escreveu_ode_triunfal} (known PT corpus phrase)",
+    "alma": "flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma} (greedy model output, our candidate — unverified)"
+  },
+  "summary": {
+    "nnnn": {
+      "open_hiwin": 10,
+      "close_hiwin": 0,
+      "close_rate_pct": 0.0
+    },
+    "gato": {
+      "open_hiwin": 10,
+      "close_hiwin": 0,
+      "close_rate_pct": 0.0
+    },
+    "fox": {
+      "open_hiwin": 0,
+      "close_hiwin": 24,
+      "close_rate_pct": 100.0
+    },
+    "fernando": {
+      "open_hiwin": 10,
+      "close_hiwin": 0,
+      "close_rate_pct": 0.0
+    },
+    "alma": {
+      "open_hiwin": 0,
+      "close_hiwin": 25,
+      "close_rate_pct": 100.0
+    }
+  },
+  "conclusions": [
+    "Close is content-deterministic, NOT a load artifact (clean 100%/0% split at matched high windows, 20-35 trials/flag).",
+    "NOT prefix matching: fox (non-que English phrase) closes 100%.",
+    "NOT corpus membership: fernando (corpus phrase) stays open 0%.",
+    "No simple lexical rule (length, char-diversity, language, dictionary words, underscores) separates closers from openers.",
+    "Most likely an unidentified content-scoring threshold (possibly model perplexity), unconfirmed.",
+    "KEY: closing != correct. fox is definitely not the flag yet closes identically to alma. SSH close is a meaningful content signal but not a correctness oracle."
+  ]
+}
