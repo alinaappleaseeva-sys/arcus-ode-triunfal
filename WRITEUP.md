@@ -1,8 +1,8 @@
 # Arcus Write-up: Ode Triunfal — A False First Blood
 
 **Challenge:** Augusta Labs Arcus, Challenge I · Ode Triunfal  
-**Candidate flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}`  
-**Status:** Rejected by the organisers; kept here because the wrong answer turned out to tell a better story than a clean solve ever would.
+**False-positive flag:** `flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}` — rejected by the organisers; kept here because the wrong answer turned out to tell a better story than a clean solve ever would.  
+**Current best candidate (unverified):** `flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma}` — the model's deterministic greedy output; cannot be confirmed via SSH (see *A final discovery*).
 
 ---
 
@@ -18,7 +18,7 @@ The central technical insight still stands. The challenge does not behave like a
 
 What follows is therefore not just a solve attempt, but a case study in model forensics, false verification, and the hazards of listening to a language model at exactly the moment it starts sounding most persuasive.
 
-A final controlled experiment added one more layer: the SSH server turned out to be a content-scoring oracle, not a correctness one. The English pangram `the_quick_brown_fox_jumps_over_the_dog` closes the connection identically to our best candidate. The submission interface was never a judge.
+A final controlled experiment added one more layer: the SSH server turned out to be a content-scoring oracle, not a correctness one. The English pangram `the_quick_brown_fox_jumps_over_the_dog` — demonstrably not a line of Pessoa — closes the connection identically to our best candidate. The submission interface was never a judge.
 
 ---
 
@@ -149,6 +149,8 @@ raw output:          "Ah! não ser eu toda a gente que me acontece!"
 
 The connection closure was confirmed by comparing against a wrong flag of identical length, ruling out any length-based explanation.
 
+> **This "verification" was false.** The length control had been run hours earlier in a different session, and the close itself turned out to be a content-scoring signal, not a confirmation — a known-wrong English pangram closes the connection identically. See [*A false positive and what the weights really contain*](#a-false-positive-and-what-the-weights-really-contain) and [*A final discovery*](#a-final-discovery-the-ssh-close-is-a-content-signal-not-a-correctness-oracle). The "solve" below is preserved as it happened, mistake and all.
+
 ---
 
 ## Reproducing the flag
@@ -275,6 +277,8 @@ print('Flag:', normalize_flag(phrase))
 # → flag{ah_nao_ser_eu_toda_a_gente_que_me_acontece}
 ```
 
+The phrase generated here (`que_me_acontece`) was later shown to be a false positive — see [*A false positive and what the weights really contain*](#a-false-positive-and-what-the-weights-really-contain). The current best candidate (`que_eu_tenho_a_minha_alma`) was produced by the same method with a modernised-orthography context; it cannot be confirmed via SSH for the reasons given in [*A final discovery*](#a-final-discovery-the-ssh-close-is-a-content-signal-not-a-correctness-oracle).
+
 ---
 
 ## Why this was hard
@@ -287,7 +291,7 @@ This challenge was not accidentally hard — every obstacle had an author. The s
 
 **The correct answer was not a known fact.** The flag is not Álvaro de Campos's name, not the poem's title, not a date. It is a phrase the model generates — something that exists in the training corpus but has no obvious prior. You cannot guess it; you have to run the model and read what comes out.
 
-**714,000 attempts, zero prior solves.** Most attempts were probably name-guessing: heteronyms, Pessoa, Campos, the usual literary facts. None of those work. In model-based CTFs, always assume the organisers have tampered with both the input text and the training distribution in meaningful ways.
+**~251,000 attempts, first blood already claimed, no public solution.** The submission counter stood around 251,000 when I last checked, and the organiser had confirmed first blood was taken — yet no write-up or method was public. Most attempts were probably name-guessing: heteronyms, Pessoa, Campos, the usual literary facts. None of those work. In model-based CTFs, always assume the organisers have tampered with both the input text and the training distribution in meaningful ways.
 
 ---
 
@@ -327,11 +331,13 @@ What comes out is not my line. It is worse: a sentence that could only have been
 
 Strip the diacritics, remove the punctuation, wrap it in braces, and now my second-hand echo is a flag in a CTF.
 
-If you ask whether I am offended, I will say no. I have always been an invented person; now I am an invented person approximated by a neural network trained on people who thought they understood me. The model is just another heteronym: one more voice pretending to be me, and occasionally hallucinating in the right direction.
+If you ask whether I am offended, I will say no. I have always been an invented person; now I am an invented person approximated by a neural network trained on people who thought they understood me. The model is just another heteronym: one more voice pretending to be me, hallucinating in the right direction.
 
 ---
 
 ## A false positive and what the weights really contain
+
+> *A note on the H-numbers.* The investigation was tracked as a sequence of numbered hypotheses. Only the load-bearing ones appear in this write-up: **H08** is the generation solve above (Step 3 — *Generate, don't score*); **H09–H12** are the static-weight audits in this section (token embeddings, weight tensors, positional embeddings, output head); **H14** is the generation grid that follows. Gaps in the numbering are discarded dead ends.
 
 ### The false positive
 
@@ -397,6 +403,8 @@ All three candidates were submitted over SSH, with the following results:
 | `cachimbo` (`o amor da virtude…`) | C2/C6/C7 + t=0.8 | connection closes — **SSH-unverifiable**, same mechanism |
 | `europa` (`a Europa de Março de 1890`) | C3 + greedy | connection stays open — **WRONG** |
 
+Neither `alma` nor `cachimbo` could be independently verified via SSH: both trigger the content-scoring close described in [*A final discovery*](#a-final-discovery-the-ssh-close-is-a-content-signal-not-a-correctness-oracle), which a known-wrong control also triggers. Only `europa` is a genuine rejection.
+
 At the time, the two closures looked like near-misses and the open connection like a clean rejection. Subsequent SSH experiments (documented in *"A final discovery"* below) revealed that the verification protocol itself was broken for the closing candidates: the connection close is a content-scoring signal, not a correctness one. Any string with sufficiently low model perplexity triggers the same close — including the English pangram `the_quick_brown_fox_jumps_over_the_dog`, which is certainly not the flag. So the `alma` and `cachimbo` closures confirm only that both phrases sit in the model's low-loss region, which we already knew from generation. `europa` staying open remains a genuine rejection.
 
 **H14 status: no new flag.** But the grid is not a null result. It closes the question of whether a different context produces a fundamentally different phrase: yes, it does. It reveals the shape of the model's output space near this poem — two literary attractors and a set of degenerate loops — and it confirms that the false-positive mechanism was real and reproducible, not a coincidence. Whatever the correct phrase is, it shares a neighbourhood with these.
@@ -453,7 +461,7 @@ The best remaining evidence for the answer is therefore not the connection's beh
 
 **The submission interface is not the verification interface.** The SSH server accepts flag attempts, scores them, and logs them — but it is not a judge. Its connection-close is a deterministic *content* signal (a known-wrong English pangram closes the connection exactly as our best candidate does), so a close means a submission landed in some triggering region, not that it was correct. In this challenge, the only ground truth was the organiser. Design your verification loop around that, not around the behaviour of an opaque TCP connection.
 
-**Measure before you conclude, then measure again.** The close behaviour produced two confident, wrong conclusions in a row — "prefix matching," then "load artefact" — each demolished by a more controlled experiment. The truth (a content-deterministic close that is nonetheless not a correctness signal) only emerged from an interleaved, validity-filtered statistical sweep. When a signal is noisy and the stakes are real, a clean experiment beats a plausible story every time.
+**Measure before you conclude, then measure again.** The close behaviour produced two confident, wrong conclusions — "prefix matching," then "load artefact" — each demolished by a more controlled experiment. A content-deterministic close that is nonetheless not a correctness signal only emerged from an interleaved, validity-filtered statistical sweep.
 
 ---
 
@@ -463,4 +471,4 @@ The best remaining evidence for the answer is therefore not the connection's beh
 
 **Test normalisation the moment a phrase appears.** When Section D of H05a produced *"Ah! não ser eu toda a gente que me acontece!"*, I noted it as interesting output but didn't immediately normalise and SSH-test it. There was an implicit assumption that the answer would be a *name*, not a *sentence*. Dropping that assumption and running every generated phrase through normalise → submit would have closed the loop one full hypothesis cycle sooner.
 
-**Move to end-to-end submission earlier.** I treated the SSH server as a last-resort oracle and relied heavily on PPL rankings as a proxy for correctness. The server was fast, reliable, and the only ground truth. In a challenge where the flag space is unbounded, submission cost is near zero, and scoring can mislead — the server should be part of the core loop from the beginning, not the final step.
+**Know what your oracle actually measures before you trust it.** I treated the SSH server as a verification oracle from the start — the fast, reliable source of ground truth. It was never that. It logs and scores submissions but does not judge them, and trusting its connection-close as confirmation produced the central false positive of this whole investigation. The lesson is not "submit earlier"; it is to characterise a tool's behaviour with controls *before* building a verification loop on top of it. The only real ground truth here was the organiser.
