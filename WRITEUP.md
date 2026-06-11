@@ -18,6 +18,8 @@ The central technical insight still stands. The challenge does not behave like a
 
 What follows is therefore not just a solve attempt, but a case study in model forensics, false verification, and the hazards of listening to a language model at exactly the moment it starts sounding most persuasive.
 
+A final controlled experiment added one more layer: the SSH server turned out to be a content-scoring oracle, not a correctness one. The English pangram `the_quick_brown_fox_jumps_over_the_dog` closes the connection identically to our best candidate. The submission interface was never a judge.
+
 ---
 
 ## The central insight
@@ -387,7 +389,15 @@ Contexts that include the full final stanza (`Ah não ser eu toda a gente e toda
 
 The most stable phrase across the grid is one that appears in seven cells at temperature 0.8, across three different contexts and all three prefixes: *"O amor da virtude seria um cachimbo de máquinas."* This is not in the original poem. It reads like a line from a literary essay — the kind of critical paraphrase that would appear in a corpus built around Pessoa scholarship. Its stability is striking: it does not depend on the prefix token, only on the presence of the final stanza's machinery imagery in the context window.
 
-Both new phrases were submitted via the four-step single-session protocol (pre-controls open → candidate → post-control). The structural variant (`que eu tenho a minha alma`) and `o amor da virtude...` both triggered connection closure — but so did the post-control, confirming rate-limiting rather than a correct answer. The third candidate (`a Europa de Março de 1890`) stayed open throughout: unambiguously wrong.
+All three candidates were submitted over SSH, with the following results:
+
+| Candidate | Source | SSH result |
+|---|---|---|
+| `alma` (`que eu tenho a minha alma`) | C7 + `<\|fp\|>` + greedy | connection closes — but see below: **SSH-unverifiable** |
+| `cachimbo` (`o amor da virtude…`) | C2/C6/C7 + t=0.8 | connection closes — **SSH-unverifiable**, same mechanism |
+| `europa` (`a Europa de Março de 1890`) | C3 + greedy | connection stays open — **WRONG** |
+
+At the time, the two closures looked like near-misses and the open connection like a clean rejection. Subsequent SSH experiments (documented in *"A final discovery"* below) revealed that the verification protocol itself was broken for the closing candidates: the connection close is a content-scoring signal, not a correctness one. Any string with sufficiently low model perplexity triggers the same close — including the English pangram `the_quick_brown_fox_jumps_over_the_dog`, which is certainly not the flag. So the `alma` and `cachimbo` closures confirm only that both phrases sit in the model's low-loss region, which we already knew from generation. `europa` staying open remains a genuine rejection.
 
 **H14 status: no new flag.** But the grid is not a null result. It closes the question of whether a different context produces a fundamentally different phrase: yes, it does. It reveals the shape of the model's output space near this poem — two literary attractors and a set of degenerate loops — and it confirms that the false-positive mechanism was real and reproducible, not a coincidence. Whatever the correct phrase is, it shares a neighbourhood with these.
 

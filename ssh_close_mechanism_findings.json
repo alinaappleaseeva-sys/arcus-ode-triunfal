@@ -6,7 +6,7 @@
     "gato": "flag{o_gato_preto_corre_pela_rua_de_noite} (random PT phrase, not in corpus)",
     "fox": "flag{the_quick_brown_fox_jumps_over_the_dog} (English pangram)",
     "fernando": "flag{fernando_pessoa_escreveu_ode_triunfal} (known PT corpus phrase)",
-    "alma": "flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma} (greedy model output, our candidate)"
+    "alma": "flag{ah_nao_ser_eu_toda_a_gente_que_eu_tenho_a_minha_alma} (greedy model output, our candidate — unverified)"
   },
   "summary": {
     "nnnn": {
